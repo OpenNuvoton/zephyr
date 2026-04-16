@@ -1,0 +1,62 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Nuvoton Technology Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#define NVT_DT_TZ_SPE 1
+
+/dts-v1/;
+
+#include <nuvoton/m3351kjc.dtsi>
+#include "numaker_m3351ki-pinctrl.dtsi"
+#include "numaker_m3351ki-partition-memory.dtsi"
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	model = "Nuvoton NuMaker M3351KI board";
+	compatible = "nuvoton,numaker-m3351ki";
+
+	chosen {
+		zephyr,console = &uart0;
+		zephyr,shell-uart = &uart0;
+		zephyr,sram = &sram0_s_partition;
+		zephyr,flash = &flash0_s_partition;
+		zephyr,code-partition = &boot_partition;
+	};
+};
+
+/* Fix gpiob for being partitioned to Non-Secure */
+/delete-node/ &gpiob;
+/ {
+	soc {
+		gpiob: gpio@50004040 {
+			compatible = "nuvoton,numaker-gpio";
+			gpio-controller;
+			#gpio-cells = <2>;
+			reg = <0x50004040 0x40>;
+			clocks = <&pcc NUMAKER_GPB_MODULE 0 0>;
+			status = "disabled";
+			interrupts = <17 2>;
+			status = "okay";
+		};
+	};
+};
+
+/* Fix uart0 for being partitioned to Non-Secure */
+/delete-node/ &uart0;
+/ {
+	soc {
+		uart0: serial@50070000 {
+			compatible = "nuvoton,numaker-uart";
+			reg = <0x50070000 0x1000>;
+			interrupts = <36 0>;
+			resets = <&rst NUMAKER_UART0_RST>;
+			clocks = <&pcc NUMAKER_UART0_MODULE NUMAKER_CLK_CLKSEL1_UART0SEL_HIRC
+				  NUMAKER_CLK_CLKDIV0_UART0(1)>;
+			current-speed = <115200>;
+			pinctrl-0 = <&uart0_default>;
+			pinctrl-names = "default";
+			status = "okay";
+		};
+	};
+};

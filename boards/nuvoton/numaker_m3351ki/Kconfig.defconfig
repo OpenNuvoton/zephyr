@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Nuvoton NuMaker M3351KI board configuration
+#
+# Copyright (c) 2026 Nuvoton Technology Corporation.
+
+if BOARD_NUMAKER_M3351KI
+
+# For BOOTLOADER_MCUBOOT, the symbol is invisible, so it can only be changed
+# via Kconfig default.
+#
+# Cortex-M vector tables must be aligned to a power-of-two boundary based on
+# the total number of entries, with a minimum alignment of 128 bytes.
+#
+# This value must also align to TF-M config when it is integrated.
+configdefault ROM_START_OFFSET
+	default 0x400 if BOOTLOADER_MCUBOOT || TFM_BL2
+
+configdefault ROM_END_OFFSET
+	default 0x800 if BOOTLOADER_MCUBOOT || TFM_BL2
+
+configdefault ARM_SECURE_BUSFAULT_HARDFAULT_NMI
+	default y if BOARD_NUMAKER_M3351KI_M335XXX_S
+
+configdefault ARM_FIRMWARE_HAS_SECURE_ENTRY_FUNCS
+	default y if BOARD_NUMAKER_M3351KI_M335XXX_S && !BUILD_WITH_TFM
+
+configdefault ARM_FIRMWARE_USES_SECURE_ENTRY_FUNCS
+	default y if BOARD_NUMAKER_M3351KI_M335XXX_NS && !BUILD_WITH_TFM
+
+endif # BOARD_NUMAKER_M3351KI

@@ -6,11 +6,13 @@
 
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/clock_control/clock_control_numaker.h>
+#include <zephyr/kernel.h>
 /* Hardware and starter kit includes. */
 #include <NuMicro.h>
 
 void soc_reset_hook(void)
 {
+#if !defined(CONFIG_ARM_NONSECURE_FIRMWARE)
 	SystemInit();
 
 	/* Unlock protected registers */
@@ -67,6 +69,12 @@ void soc_reset_hook(void)
 	CLK_SetCoreClock(DT_PROP(DT_NODELABEL(scc), core_clock));
 #endif
 
+#if defined(CONFIG_ARM_SECURE_FIRMWARE)
+	extern void SCU_IRQHandler(void);
+	IRQ_CONNECT(SCU_IRQn, 0, SCU_IRQHandler, NULL, 0);
+	irq_enable(SCU_IRQn);
+#endif
+
 	/*
 	 * Update System Core Clock
 	 * User can use SystemCoreClockUpdate() to calculate SystemCoreClock.
@@ -75,4 +83,7 @@ void soc_reset_hook(void)
 
 	/* Lock protected registers */
 	SYS_LockReg();
+#else
+	SystemCoreClockUpdate();
+#endif
 }

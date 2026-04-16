@@ -11,6 +11,14 @@
 #include <zephyr/logging/log.h>
 #include <NuMicro.h>
 
+/* For TrustZone Non-Secure, switch to NSC version */
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+#include <tfm_platform_hal_ioctl_api.h>
+#define NVT_SECURE_CALL(FUNC) NVT_TFM_PLAT_IOCTL_NS(FUNC)
+#else
+#define NVT_SECURE_CALL(FUNC) FUNC
+#endif
+
 LOG_MODULE_REGISTER(clock_control_numaker_scc, CONFIG_CLOCK_CONTROL_LOG_LEVEL);
 
 struct numaker_scc_config {
@@ -335,14 +343,15 @@ static inline int numaker_scc_on(const struct device *dev, clock_control_subsys_
 			return 0;
 		}
 
-		SYS_UnlockReg();
+		NVT_SECURE_CALL(SYS_UnlockReg)();
 #if defined(CONFIG_SOC_SERIES_M55M1X)
 		__ASSERT_NO_MSG(scc_subsys->pcc.clk_modidx < ARRAY_SIZE(numaker_clkmodidx_tab));
-		CLK_EnableModuleClock(numaker_clkmodidx_tab[scc_subsys->pcc.clk_modidx]);
+		NVT_SECURE_CALL(CLK_EnableModuleClock)(
+			numaker_clkmodidx_tab[scc_subsys->pcc.clk_modidx]);
 #else
-		CLK_EnableModuleClock(scc_subsys->pcc.clk_modidx);
+		NVT_SECURE_CALL(CLK_EnableModuleClock)(scc_subsys->pcc.clk_modidx);
 #endif
-		SYS_LockReg();
+		NVT_SECURE_CALL(SYS_LockReg)();
 	} else {
 		return -EINVAL;
 	}
@@ -362,14 +371,15 @@ static inline int numaker_scc_off(const struct device *dev, clock_control_subsys
 			return 0;
 		}
 
-		SYS_UnlockReg();
+		NVT_SECURE_CALL(SYS_UnlockReg)();
 #if defined(CONFIG_SOC_SERIES_M55M1X)
 		__ASSERT_NO_MSG(scc_subsys->pcc.clk_modidx < ARRAY_SIZE(numaker_clkmodidx_tab));
-		CLK_DisableModuleClock(numaker_clkmodidx_tab[scc_subsys->pcc.clk_modidx]);
+		NVT_SECURE_CALL(CLK_DisableModuleClock)(
+			numaker_clkmodidx_tab[scc_subsys->pcc.clk_modidx]);
 #else
-		CLK_DisableModuleClock(scc_subsys->pcc.clk_modidx);
+		NVT_SECURE_CALL(CLK_DisableModuleClock)(scc_subsys->pcc.clk_modidx);
 #endif
-		SYS_LockReg();
+		NVT_SECURE_CALL(SYS_LockReg)();
 	} else {
 		return -EINVAL;
 	}
@@ -548,16 +558,18 @@ static inline int numaker_scc_configure(const struct device *dev, clock_control_
 			return 0;
 		}
 
-		SYS_UnlockReg();
+		NVT_SECURE_CALL(SYS_UnlockReg)();
 #if defined(CONFIG_SOC_SERIES_M55M1X)
 		__ASSERT_NO_MSG(scc_subsys->pcc.clk_modidx < ARRAY_SIZE(numaker_clkmodidx_tab));
-		CLK_SetModuleClock(numaker_clkmodidx_tab[scc_subsys->pcc.clk_modidx],
-				   scc_subsys->pcc.clk_src, scc_subsys->pcc.clk_div);
+		NVT_SECURE_CALL(CLK_SetModuleClock)(
+			numaker_clkmodidx_tab[scc_subsys->pcc.clk_modidx], scc_subsys->pcc.clk_src,
+			scc_subsys->pcc.clk_div);
 #else
-		CLK_SetModuleClock(scc_subsys->pcc.clk_modidx, scc_subsys->pcc.clk_src,
-				   scc_subsys->pcc.clk_div);
+		NVT_SECURE_CALL(CLK_SetModuleClock)(scc_subsys->pcc.clk_modidx,
+						    scc_subsys->pcc.clk_src,
+						    scc_subsys->pcc.clk_div);
 #endif
-		SYS_LockReg();
+		NVT_SECURE_CALL(SYS_LockReg)();
 	} else {
 		return -EINVAL;
 	}

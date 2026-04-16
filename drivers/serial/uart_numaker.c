@@ -16,6 +16,14 @@
 #include <zephyr/drivers/pinctrl.h>
 #include <NuMicro.h>
 
+/* For TrustZone Non-Secure, switch to NSC version */
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+#include <tfm_platform_hal_ioctl_api.h>
+#define NVT_SECURE_CALL(FUNC) NVT_TFM_PLAT_IOCTL_NS(FUNC)
+#else
+#define NVT_SECURE_CALL(FUNC) FUNC
+#endif
+
 LOG_MODULE_REGISTER(numaker_uart, LOG_LEVEL_ERR);
 
 struct uart_numaker_config {
@@ -190,7 +198,7 @@ static int uart_numaker_init(const struct device *dev)
 	struct uart_numaker_data *pData = dev->data;
 	int err = 0;
 
-	SYS_UnlockReg();
+	NVT_SECURE_CALL(SYS_UnlockReg)();
 
 	struct numaker_scc_subsys scc_subsys;
 
@@ -245,7 +253,7 @@ static int uart_numaker_init(const struct device *dev)
 #endif
 
 move_exit:
-	SYS_LockReg();
+	NVT_SECURE_CALL(SYS_LockReg)();
 	return err;
 }
 
@@ -450,3 +458,17 @@ static DEVICE_API(uart, uart_numaker_driver_api) = {
 			      &uart_numaker_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(NUMAKER_UART_INIT)
+
+/* UART can be partitioned to Non-Secure for sharing single UART
+ * interface for both SPE and NSPE. When interrupt is enabled,
+ * Non-Secure UART interrupt will target Non-Secure ISR. In this
+ * situation, interrupt cannot support in SPE and can support in NSPE.
+ */
+#if defined(CONFIG_ARM_SECURE_FIRMWARE)
+#if defined(CONFIG_UART_INTERRUPT_DRIVEN)
+#define NUMAKER_UART_CHECK_SECURE(inst)                                                            \
+	BUILD_ASSERT(DT_INST_REG_ADDR(inst) < (uint32_t)SYS_NS)
+
+DT_INST_FOREACH_STATUS_OKAY(NUMAKER_UART_CHECK_SECURE)
+#endif
+#endif

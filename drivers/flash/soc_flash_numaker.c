@@ -14,8 +14,20 @@
 #include <zephyr/logging/log.h>
 #include "flash_priv.h"
 
+#if defined(CONFIG_ARM_SECURE_FIRMWARE) || defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+#define SOC_NV_FLASH_NODE DT_COMPAT_GET_ANY_STATUS_OKAY(soc_nv_flash)
+#else
 #define SOC_NV_FLASH_NODE SOC_NV_FLASH_CHILD_NODE(0)
+#endif
 #include <NuMicro.h>
+
+/* For TrustZone Non-Secure, switch to NSC version */
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+#include <tfm_platform_hal_ioctl_api.h>
+#define NVT_SECURE_CALL(FUNC) NVT_TFM_PLAT_IOCTL_NS(FUNC)
+#else
+#define NVT_SECURE_CALL(FUNC) FUNC
+#endif
 
 LOG_MODULE_REGISTER(flash_numaker, CONFIG_FLASH_LOG_LEVEL);
 
@@ -88,7 +100,7 @@ static int flash_numaker_erase(const struct device *dev, off_t offset, size_t le
 		return -EACCES;
 	}
 
-	SYS_UnlockReg();
+	NVT_SECURE_CALL(SYS_UnlockReg)();
 	key = irq_lock();
 	while (page_nums) {
 		if (((len >= FMC_BANK_SIZE)) && ((addr % FMC_BANK_SIZE) == 0)) {
@@ -112,7 +124,7 @@ static int flash_numaker_erase(const struct device *dev, off_t offset, size_t le
 	}
 
 done:
-	SYS_LockReg();
+	NVT_SECURE_CALL(SYS_LockReg)();
 	irq_unlock(key);
 	/* release semaphore */
 	k_sem_give(&dev_data->write_lock);
@@ -145,6 +157,13 @@ static int flash_numaker_read(const struct device *dev, off_t offset, void *data
 		return -EINVAL;
 	}
 
+#if defined(CONFIG_ARM_SECURE_FIRMWARE) || defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+	/* For CPU viewpoint, change to TZ enabled virtual address */
+	if (addr >= FMC_SECURE_END) {
+		addr += NS_OFFSET;
+	}
+#endif
+
 	/* read flash */
 	memcpy(data, (void *)addr, len);
 
@@ -156,7 +175,7 @@ static int32_t flash_numaker_block_write(uint32_t u32_addr, uint8_t *pu8_data, i
 	int32_t retval;
 	uint32_t *pu32_data = (uint32_t *)pu8_data;
 
-	SYS_UnlockReg();
+	NVT_SECURE_CALL(SYS_UnlockReg)();
 	if (block_size == 4) {
 		retval = FMC_Write(u32_addr, *pu32_data);
 	} else if (block_size == 8) {
@@ -164,7 +183,7 @@ static int32_t flash_numaker_block_write(uint32_t u32_addr, uint8_t *pu8_data, i
 	} else {
 		retval = -1;
 	}
-	SYS_LockReg();
+	NVT_SECURE_CALL(SYS_LockReg)();
 
 	return retval;
 }
@@ -230,8 +249,8 @@ done:
 
 #if defined(CONFIG_FLASH_PAGE_LAYOUT)
 static const struct flash_pages_layout dev_layout = {
-	.pages_count =
-		DT_REG_SIZE(SOC_NV_FLASH_NODE) / DT_PROP(SOC_NV_FLASH_NODE, erase_block_size),
+	.pages_count = DT_REG_SIZE(SOC_NV_FLASH_NODE) /
+		       DT_PROP(SOC_NV_FLASH_NODE, erase_block_size),
 	.pages_size = DT_PROP(SOC_NV_FLASH_NODE, erase_block_size),
 };
 
@@ -270,11 +289,11 @@ static int flash_numaker_init(const struct device *dev)
 	k_sem_init(&dev_data->write_lock, 1, 1);
 
 	/* Enable FMC ISP function */
-	SYS_UnlockReg();
-	FMC_Open();
+	NVT_SECURE_CALL(SYS_UnlockReg)();
+	NVT_SECURE_CALL(FMC_Open)();
 	/* Enable APROM update. */
-	FMC_ENABLE_AP_UPDATE();
-	SYS_LockReg();
+	NVT_SECURE_CALL(FMC_ENABLE_AP_UPDATE)();
+	NVT_SECURE_CALL(SYS_LockReg)();
 	dev_data->flash_block_base = (uint32_t)FMC_APROM_BASE;
 	dev_data->fmc = (FMC_T *)DT_REG_ADDR(DT_NODELABEL(fmc));
 

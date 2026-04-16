@@ -10,6 +10,8 @@ config SOC_SERIES_M335X
 	select CPU_CORTEX_M_HAS_SYSTICK
 	select CPU_CORTEX_M_HAS_VTOR
 	select CPU_HAS_ARM_MPU
+	select CPU_HAS_ARM_SAU
+	select ARM_TRUSTZONE_M
 	select ARMV8_M_DSP
 	select HAS_POWEROFF
 	select ARM_MPU

@@ -1,0 +1,120 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Nuvoton Technology Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* Partition flash0
+ *
+ * flash0: Embedded flash in Secure view
+ * flash0_ns: Non-Secure view of flash0
+ * flash0_s_partition: Partitioned flash0 for SPE
+ * flash0_ns_partition: Partitioned flash0_ns for NSPE
+ */
+/delete-node/ &flash0;
+&fmc {
+	ranges;
+
+	flash0: flash@0 {
+		compatible = "soc-nv-flash";
+		erase-block-size = <8192>;
+		write-block-size = <8>;
+		reg = <0 DT_SIZE_K(1024)>;
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		flash0_s_partition: s_partition@0 {
+			reg = <0 DT_SIZE_K(512)>;
+		};
+	};
+
+	flash0_ns: flash@10000000 {
+		compatible = "soc-nv-flash";
+		erase-block-size = <8192>;
+		write-block-size = <8>;
+		reg = <0x10000000 DT_SIZE_K(1024)>;
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0x0 0x10000000 0x100000>;
+
+		flash0_ns_partition: ns_partition@80000 {
+			reg = <0x80000 DT_SIZE_K(512)>;
+		};
+	};
+};
+
+&flash0_s_partition {
+	ranges;
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	partitions {
+		ranges;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			compatible = "zephyr,mapped-partition";
+			label = "mcuboot";
+			reg = <0x0 0x10000>;
+		};
+
+		storage_partition: partition@10000 {
+			compatible = "zephyr,mapped-partition";
+			label = "storage";
+			reg = <0x10000 0xe000>;
+		};
+
+		scratch_partition: partition@1e000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-scratch";
+			reg = <0x1e000 0x2000>;
+		};
+	};
+};
+
+&flash0_ns_partition {
+	ranges;
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	partitions {
+		ranges;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		slot0_partition: partition@80000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-0";
+			reg = <0x80000 0x40000>;
+		};
+
+		slot1_partition: partition@c0000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-1";
+			reg = <0xc0000 0x40000>;
+		};
+	};
+};
+
+/* Partition sram0
+ *
+ * sram0: Embedded SRAM in Secure view (deleted for no use)
+ * sram0_ns: Non-Secure view of sram0 (not defined for no use)
+ * sram0_s_partition: Partitioned sram0 for SPE
+ * sram0_ns_partition: Partitioned sram0_ns for NSPE
+ */
+/delete-node/ &sram0;
+/ {
+	sram0_s_partition: memory@20000000 {
+		compatible = "mmio-sram";
+		reg = <0x20000000 DT_SIZE_K(64)>;
+	};
+
+	sram0_ns_partition: memory@30010000 {
+		compatible = "mmio-sram";
+		reg = <0x30010000 DT_SIZE_K(64)>;
+	};
+};

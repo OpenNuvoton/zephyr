@@ -13,6 +13,14 @@
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/cache.h>
 
+/* For TrustZone Non-Secure, switch to NSC version */
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+#include <tfm_platform_hal_ioctl_api.h>
+#define NVT_SECURE_CALL(FUNC) NVT_TFM_PLAT_IOCTL_NS(FUNC)
+#else
+#define NVT_SECURE_CALL(FUNC) FUNC
+#endif
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(udc_numaker, CONFIG_UDC_DRIVER_LOG_LEVEL);
 
@@ -488,6 +496,10 @@ static int numaker_usbd_hw_setup(const struct device *dev)
 	const struct udc_numaker_config *config = dev->config;
 	int err;
 	struct numaker_scc_subsys scc_subsys;
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+	uint32_t usbphy_addr = (uint32_t)&SYS_S->USBPHY;
+	uint32_t usbphy_val;
+#endif
 
 	/* Reset controller ready? */
 	if (!device_is_ready(config->reset.dev)) {
@@ -495,7 +507,7 @@ static int numaker_usbd_hw_setup(const struct device *dev)
 		return -ENODEV;
 	}
 
-	SYS_UnlockReg();
+	NVT_SECURE_CALL(SYS_UnlockReg)();
 
 	/* Configure USB role as USB Device and enable USB/PHY */
 	if (config->is_hsusbd) {
@@ -540,8 +552,15 @@ static int numaker_usbd_hw_setup(const struct device *dev)
 #elif defined(CONFIG_SOC_SERIES_M333X)
 		CODE_UNREACHABLE;
 #elif defined(CONFIG_SOC_SERIES_M335X)
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+		usbphy_val = NVT_TFM_PLAT_IOCTL_NS(SYS_USBPHY_Read)(usbphy_addr);
+		usbphy_val &= ~SYS_USBPHY_USBROLE_Msk;
+		usbphy_val |= SYS_USBPHY_USBROLE_STD_USBD | SYS_USBPHY_USBEN_Msk;
+		NVT_TFM_PLAT_IOCTL_NS(SYS_USBPHY_Write)(usbphy_addr, usbphy_val);
+#else
 		SYS->USBPHY = (SYS->USBPHY & ~SYS_USBPHY_USBROLE_Msk) |
 			      (SYS_USBPHY_USBROLE_STD_USBD | SYS_USBPHY_USBEN_Msk);
+#endif
 #endif
 	}
 
@@ -627,7 +646,7 @@ static int numaker_usbd_hw_setup(const struct device *dev)
 	config->irq_config_func(dev);
 cleanup:
 
-	SYS_LockReg();
+	NVT_SECURE_CALL(SYS_LockReg)();
 
 	return err;
 }
@@ -637,7 +656,7 @@ static void numaker_usbd_hw_shutdown(const struct device *dev)
 	const struct udc_numaker_config *config = dev->config;
 	struct numaker_scc_subsys scc_subsys;
 
-	SYS_UnlockReg();
+	NVT_SECURE_CALL(SYS_UnlockReg)();
 
 	/* Uninitialize IRQ */
 	config->irq_unconfig_func(dev);
@@ -668,7 +687,7 @@ static void numaker_usbd_hw_shutdown(const struct device *dev)
 	/* Equivalent to SYS_ResetModule() */
 	reset_line_toggle_dt(&config->reset);
 
-	SYS_LockReg();
+	NVT_SECURE_CALL(SYS_LockReg)();
 }
 
 /* Interrupt top half processing for vbus plug */
@@ -3242,7 +3261,7 @@ static const struct udc_api udc_numaker_api = {
 		numaker_usbd_ep_pool_##inst[DT_INST_PROP(inst, num_bidir_endpoints)];              \
                                                                                                    \
 	K_MSGQ_DEFINE_STATIC_TYPE(numaker_usbd_msgq_##inst, struct numaker_usbd_msg,               \
-		      CONFIG_UDC_NUMAKER_MSG_QUEUE_SIZE);                                          \
+				  CONFIG_UDC_NUMAKER_MSG_QUEUE_SIZE);                              \
                                                                                                    \
 	static struct udc_numaker_data udc_priv_##inst = {                                         \
 		.msgq = &numaker_usbd_msgq_##inst,                                                 \

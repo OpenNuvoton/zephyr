@@ -16,6 +16,14 @@
 #include <zephyr/logging/log.h>
 #include <NuMicro.h>
 
+/* For TrustZone Non-Secure, switch to NSC version */
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+#include <tfm_platform_hal_ioctl_api.h>
+#define NVT_SECURE_CALL(FUNC) NVT_TFM_PLAT_IOCTL_NS(FUNC)
+#else
+#define NVT_SECURE_CALL(FUNC) FUNC
+#endif
+
 LOG_MODULE_REGISTER(gpio_numaker, LOG_LEVEL_ERR);
 
 struct gpio_numaker_config {
@@ -41,6 +49,10 @@ static int gpio_numaker_configure(const struct device *dev, gpio_pin_t pin, gpio
 	uint32_t pinMask = BIT(pin); /* mask for pin index --> (0x01 << pin) */
 	uint32_t port_index;
 	uint32_t *GPx_MFPx;
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+	uint32_t GPx_MFPx_addr;
+	uint32_t GPx_MFPx_val;
+#endif
 	uint32_t pinMfpGpio;
 	int err = 0;
 
@@ -78,12 +90,22 @@ static int gpio_numaker_configure(const struct device *dev, gpio_pin_t pin, gpio
 #else
 	GPx_MFPx = ((uint32_t *)&SYS->GPA_MFP0) + port_index * 4 + (pin / 4);
 #endif
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+	GPx_MFPx_addr = ((uint32_t)GPx_MFPx) - NS_OFFSET;
+#endif
 	pinMfpGpio = 0x00UL;
 	/*
 	 * E.g.: SYS->GPA_MFP0  = (SYS->GPA_MFP0 & (~SYS_GPA_MFP0_PA0MFP_Msk) ) |
 	 * SYS_GPA_MFP0_PA0MFP_GPIO;
 	 */
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+	GPx_MFPx_val = NVT_TFM_PLAT_IOCTL_NS(SYS_GPx_MFPx_Read)(GPx_MFPx_addr);
+	GPx_MFPx_val &= ~pinMfpMask;
+	GPx_MFPx_val |= pinMfpGpio;
+	NVT_TFM_PLAT_IOCTL_NS(SYS_GPx_MFPx_Write)(GPx_MFPx_addr, GPx_MFPx_val);
+#else
 	*GPx_MFPx = (*GPx_MFPx & (~pinMfpMask)) | pinMfpGpio;
+#endif
 
 	/* Set pull control as pull-up, pull-down or pull-disable */
 	if ((flags & GPIO_PULL_UP) != 0) {
@@ -254,7 +276,7 @@ static void gpio_numaker_isr(const struct device *dev)
 		struct numaker_scc_subsys scc_subsys;                                              \
 		int err;                                                                           \
                                                                                                    \
-		SYS_UnlockReg();                                                                   \
+		NVT_SECURE_CALL(SYS_UnlockReg)();                                                  \
 		memset(&scc_subsys, 0x00, sizeof(scc_subsys));                                     \
 		scc_subsys.subsys_id = NUMAKER_SCC_SUBSYS_ID_PCC;                                  \
 		scc_subsys.pcc.clk_modidx = config->clk_modidx;                                    \
@@ -263,7 +285,7 @@ static void gpio_numaker_isr(const struct device *dev)
 			IF_ENABLED(DT_INST_IRQ_HAS_IDX(n, 0), (GPIO_NUMAKER_IRQ_INIT(n);))         \
 		}                                                                                  \
                                                                                                    \
-		SYS_LockReg();                                                                     \
+		NVT_SECURE_CALL(SYS_LockReg)();                                                    \
 		return err;                                                                        \
 	}                                                                                          \
 	DEVICE_DT_INST_DEFINE(n, gpio_numaker_init##n, NULL, &gpio_numaker_data##n,                \
