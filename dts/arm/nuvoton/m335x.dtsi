@@ -40,6 +40,13 @@
 	};
 
 	soc {
+#if defined(NVT_DT_TZ_NSPE)
+		peripherals@50000000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0x40000000 0x50000000 0x10000000>;
+#endif
+
 		rst: reset-controller@40000000 {
 			compatible = "nuvoton,numaker-rst";
 			reg = <0x40000000 0x20>;
@@ -451,6 +458,10 @@
 			#size-cells = <0>;
 			status = "disabled";
 		};
+
+#if defined(NVT_DT_TZ_NSPE)
+		}; /* End of peripherals */
+#endif
 	};
 };
 
