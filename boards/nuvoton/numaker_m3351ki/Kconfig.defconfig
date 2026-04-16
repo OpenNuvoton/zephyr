@@ -1,0 +1,73 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Nuvoton NuMaker M3351KI board configuration
+#
+# Copyright (c) 2026 Nuvoton Technology Corporation.
+
+if BOARD_NUMAKER_M3351KI
+
+# For BOOTLOADER_MCUBOOT, the symbol is invisible, so it can only be changed
+# via Kconfig default.
+#
+# Cortex-M vector tables must be aligned to a power-of-two boundary based on
+# the total number of entries, with a minimum alignment of 128 bytes.
+#
+# This value must align to TF-M config BL2_HEADER_SIZE when it is integrated.
+configdefault ROM_START_OFFSET
+	default 0x400 if BOOTLOADER_MCUBOOT || TFM_BL2
+
+# This value must align to TF-M config BL2_TRAILER_SIZE when it is integrated.
+configdefault ROM_END_OFFSET
+	default 0x800 if BOOTLOADER_MCUBOOT || TFM_BL2
+
+configdefault ARM_SECURE_BUSFAULT_HARDFAULT_NMI
+	default y if BOARD_NUMAKER_M3351KI_M335XXX_S
+
+configdefault ARM_FIRMWARE_HAS_SECURE_ENTRY_FUNCS
+	default y if BOARD_NUMAKER_M3351KI_M335XXX_S && !BUILD_WITH_TFM
+
+configdefault ARM_FIRMWARE_USES_SECURE_ENTRY_FUNCS
+	default y if BOARD_NUMAKER_M3351KI_M335XXX_NS && !BUILD_WITH_TFM
+
+configdefault TFM_PARTITION_FIRMWARE_UPDATE_SUPPORTED
+	default y if BOARD_NUMAKER_M3351KI_M335XXX_NS && BUILD_WITH_TFM
+
+configdefault BUILD_WITH_TFM
+	default y if TRUSTED_EXECUTION_NONSECURE
+
+if BUILD_WITH_TFM
+
+# TF-M
+#
+# Profile Medium defaults:
+# CONFIG_TFM_ISOLATION_LEVEL=2
+# CONFIG_TFM_IPC=y
+# CONFIG_TFM_PARTITION_CRYPTO=y
+# CONFIG_TFM_PARTITION_PROTECTED_STORAGE=y
+#
+# BL2 defaults:
+# CONFIG_TFM_BL2=y
+# CONFIG_TFM_MCUBOOT_IMAGE_NUMBER=2
+# CONFIG_TFM_MCUBOOT_SIGNATURE_TYPE="EC-P256"
+# CONFIG_TFM_PUBLIC_KEY_FORMAT_HASH=y
+# CONFIG_TFM_BL2_LOG_LEVEL_INFO=y
+# CONFIG_TFM_SPM_LOG_LEVEL_INFO=y
+# CONFIG_TFM_PARTITION_LOG_LEVEL_INFO=y
+
+choice TFM_PROFILE_TYPE
+	default TFM_PROFILE_TYPE_MEDIUM
+endchoice
+
+config TFM_PARTITION_PLATFORM
+	default y
+
+config TFM_PARTITION_FIRMWARE_UPDATE
+	default y
+
+choice TFM_PUBLIC_KEY_FORMAT
+	default TFM_PUBLIC_KEY_FORMAT_HASH
+endchoice
+
+endif # BUILD_WITH_TFM
+
+endif # BOARD_NUMAKER_M3351KI

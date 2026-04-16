@@ -6,11 +6,13 @@
 
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/clock_control/clock_control_numaker.h>
+#include <zephyr/kernel.h>
 /* Hardware and starter kit includes. */
 #include <NuMicro.h>
 
 void soc_reset_hook(void)
 {
+#if !defined(CONFIG_ARM_NONSECURE_FIRMWARE)
 	SystemInit();
 
 	/* Unlock protected registers */
@@ -75,4 +77,7 @@ void soc_reset_hook(void)
 
 	/* Lock protected registers */
 	SYS_LockReg();
+#else
+	SystemCoreClockUpdate();
+#endif
 }

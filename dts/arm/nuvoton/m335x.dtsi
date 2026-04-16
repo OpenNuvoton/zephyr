@@ -40,6 +40,13 @@
 	};
 
 	soc {
+#if defined(NVT_DT_TZ_NSPE)
+		peripherals@50000000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0x40000000 0x50000000 0x10000000>;
+#endif
+
 		scc: system-clock-controller@40000200 {
 			compatible = "nuvoton,numaker-scc";
 			reg = <0x40000200 0x100>;
@@ -451,6 +458,10 @@
 			status = "disabled";
 			#io-channel-cells = <1>;
 		};
+
+#if defined(NVT_DT_TZ_NSPE)
+		}; /* End of peripherals */
+#endif
 	};
 };
 
