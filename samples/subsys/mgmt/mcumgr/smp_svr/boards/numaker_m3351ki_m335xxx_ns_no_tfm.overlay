@@ -1,0 +1,12 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Nuvoton Technology Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/delete-node/ &slot0_partition;
+slot0_partition: &slot0_ns_partition {
+};
+
+/delete-node/ &slot1_partition;
+slot1_partition: &slot1_ns_partition {
+};
