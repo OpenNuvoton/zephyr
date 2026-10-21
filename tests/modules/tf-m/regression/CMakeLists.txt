@@ -310,12 +310,18 @@ add_inc_and_src_if_def(
   INC
     ${TFM_TEST_REG_TEST_PATH}/secure_fw/suites/fwu/mcuboot/non_secure
     ${TFM_TEST_REG_TEST_PATH}/secure_fw/suites/fwu/mcuboot/secure
+    ${TFM_TEST_REG_TEST_PATH}/secure_fw/suites/fwu/mcuboot
+    ${CMAKE_BINARY_DIR}/tfm/api_ns/platform/partition
   GLOB_SRC
     ${TFM_TEST_REG_TEST_PATH}/secure_fw/suites/fwu/mcuboot/non_secure/*.c
     ${TFM_TEST_REG_TEST_PATH}/secure_fw/suites/fwu/mcuboot/secure/*.c
+    ${TFM_TEST_REG_TEST_PATH}/secure_fw/suites/fwu/mcuboot/*.c
 )
 def_if_def(CONFIG_TFM_PARTITION_FIRMWARE_UPDATE           TEST_NS_FWU)
 def_if_def(CONFIG_TFM_PARTITION_FIRMWARE_UPDATE           TEST_S_FWU)
+def_if_def(CONFIG_TFM_MCUBOOT_IMAGE_NUMBER                MCUBOOT_IMAGE_NUMBER=2)
+def_if_def(CONFIG_ROM_START_OFFSET                        BL2_HEADER_SIZE=${CONFIG_ROM_START_OFFSET})
+def_if_def(CONFIG_ROM_END_OFFSET                          BL2_TRAILER_SIZE=${CONFIG_ROM_END_OFFSET})
 
 add_inc_and_src_if_def(
   KCONFIG

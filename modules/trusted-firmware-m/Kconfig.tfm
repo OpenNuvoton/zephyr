@@ -555,6 +555,14 @@ config ROM_START_OFFSET
 	  needs to be updated if TF-M switches to use a different header
 	  size for BL2.
 
+config ROM_END_OFFSET
+	hex "ROM End Offset accounting for BL2 trailer in the NS image"
+	default 0x800
+	help
+	  By default BL2 trailer size in TF-M is 0x800. ROM_END_OFFSET
+	  needs to be updated if TF-M switches to use a different trailer
+	  size for BL2.
+
 choice TFM_BL2_LOG_LEVEL
 	prompt "BL2 Log Level" if !TFM_LOG_LEVEL_SILENCE
 	default TFM_BL2_LOG_LEVEL_INFO
