@@ -331,6 +331,15 @@ if(CONFIG_BUILD_WITH_TFM)
     list(APPEND TFM_CMAKE_ARGS -DTFM_INSTALL_TF_PSA_CRYPTO_HEADERS=OFF)
   endif()
 
+  # Make NS application logic consistent with TF-M S crypto configs
+  # TF-M NS regression test relies on these configs for correct test results.
+  set(target_config_header_file_unquoted ${TFM_INTERFACE_INCLUDE_DIR}/config_tfm_target.h)
+  set(project_config_header_file_unquoted ${TFM_INTERFACE_INCLUDE_DIR}/config_tfm_project.h)
+  zephyr_compile_definitions(
+    $<$<BOOL:CONFIG_TFM_INCLUDE_TARGET_CONFIG_HEADER_FILE>:TARGET_CONFIG_HEADER_FILE=\"${target_config_header_file_unquoted}\">
+    $<$<BOOL:CONFIG_TFM_INCLUDE_PROJECT_CONFIG_HEADER_FILE>:PROJECT_CONFIG_HEADER_FILE=\"${project_config_header_file_unquoted}\">
+  )
+
   # Prevent TF-M's CMake build system from signing images.
   # Zephyr does not follow the official TF-M build pattern [1] and instead it
   # reimplements some steps including the signature. This is done below through

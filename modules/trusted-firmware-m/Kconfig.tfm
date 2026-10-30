@@ -305,6 +305,23 @@ config TFM_CONNECTION_BASED_SERVICE_API
 	  system. When this option is not enabled in the TF-M build system this
 	  will result in compilation error.
 
+config TFM_INCLUDE_TARGET_CONFIG_HEADER_FILE
+	bool "Include TF-M exported target config header file"
+	depends on TFM_PARTITION_CRYPTO
+	help
+	  If TF-M exports project config header file (config_tfm_target.h), user
+	  can enable the option to make NS application consistent with TF-M S
+	  crypto configs. TF-M NS regression test relies on this for correct
+	  test results.
+
+config TFM_INCLUDE_PROJECT_CONFIG_HEADER_FILE
+	bool "Include TF-M exported project config header file"
+	depends on TFM_PARTITION_CRYPTO
+	help
+	  If TF-M exports project config header file (config_tfm_project.h), user
+	  can enable the option to make NS application consistent with TF-M S
+	  crypto configs. TF-M NS regression test relies on this for correct
+	  test results.
 
 if TFM_BL1
 
