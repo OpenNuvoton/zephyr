@@ -9,6 +9,10 @@
 #include <zephyr/drivers/pinctrl.h>
 #include <NuMicro.h>
 
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+#include <tfm_platform_hal_ioctl_api.h>
+#endif
+
 /* Get mfp_base, it should be == (&SYS->GPA_MFP0) */
 #define MFP_BASE    DT_INST_REG_ADDR_BY_NAME(0, mfp)
 #define MFOS_BASE   DT_INST_REG_ADDR_BY_NAME(0, mfos)
@@ -19,6 +23,12 @@
 #define SLEWCTL_MASK(pin_idx)		(3 << SLEWCTL_PIN_SHIFT(pin_idx))
 #define DINOFF_PIN_SHIFT(pin_idx)	(pin_idx + GPIO_DINOFF_DINOFF0_Pos)
 #define DINOFF_MASK(pin_idx)		(1 << DINOFF_PIN_SHIFT(pin_idx))
+
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+BUILD_ASSERT(MFP_BASE >= (SYS_BASE + NS_OFFSET));
+BUILD_ASSERT(MFOS_BASE >= (SYS_BASE + NS_OFFSET));
+BUILD_ASSERT(GPA_BASE >= (SYS_BASE + NS_OFFSET));
+#endif
 
 static void gpio_configure(const pinctrl_soc_pin_t *pin, uint8_t port_idx, uint8_t pin_idx)
 {
@@ -52,16 +62,42 @@ static void configure_pin(const pinctrl_soc_pin_t *pin)
 #endif
 	uint32_t pinMask = NU_MFP_MASK(pin_index);
 
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+	uint32_t GPx_MFPx_addr = ((uint32_t) GPx_MFPx) - NS_OFFSET;
+	uint32_t GPx_MFOSx_addr = ((uint32_t) GPx_MFOSx) - NS_OFFSET;
+	uint32_t GPx_MFPx_val;
+	uint32_t GPx_MFOSx_val;
+#endif
+
 	/*
 	 * E.g.: SYS->GPA_MFP0  = (SYS->GPA_MFP0 & (~SYS_GPA_MFP0_PA0MFP_Msk) ) |
 	 * SYS_GPA_MFP0_PA0MFP_SC0_CD;
 	 */
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+	GPx_MFPx_val = NVT_TFM_PLAT_IOCTL_NS(SYS_GPx_MFPx_Read)(GPx_MFPx_addr);
+	GPx_MFPx_val &= ~pinMask;
+	GPx_MFPx_val |= mfp_cfg;
+	NVT_TFM_PLAT_IOCTL_NS(SYS_GPx_MFPx_Write)(GPx_MFPx_addr, GPx_MFPx_val);
+#else
 	*GPx_MFPx = (*GPx_MFPx & (~pinMask)) | mfp_cfg;
+#endif
 #if !defined(CONFIG_SOC_SERIES_M031X)
 	if (pin->open_drain != 0) {
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+		GPx_MFOSx_val = NVT_TFM_PLAT_IOCTL_NS(SYS_GPx_MFOSx_Read)(GPx_MFOSx_addr);
+		GPx_MFOSx_val |= BIT(pin_index);
+		NVT_TFM_PLAT_IOCTL_NS(SYS_GPx_MFOSx_Write)(GPx_MFOSx_addr, GPx_MFOSx_val);
+#else
 		*GPx_MFOSx |= BIT(pin_index);
+#endif
 	} else {
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+		GPx_MFOSx_val = NVT_TFM_PLAT_IOCTL_NS(SYS_GPx_MFOSx_Read)(GPx_MFOSx_addr);
+		GPx_MFOSx_val &= ~BIT(pin_index);
+		NVT_TFM_PLAT_IOCTL_NS(SYS_GPx_MFOSx_Write)(GPx_MFOSx_addr, GPx_MFOSx_val);
+#else
 		*GPx_MFOSx &= ~BIT(pin_index);
+#endif
 	}
 #endif
 	gpio_configure(pin, port_index, pin_index);

@@ -11,6 +11,10 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/reset.h>
 
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+#include <tfm_platform_hal_ioctl_api.h>
+#endif
+
 #if defined(CONFIG_SOC_SERIES_M55M1X)
 #define NUMAKER_RESET_IP_OFFSET(id) (((id) >> 20UL) & 0xfffUL)
 #define NUMAKER_RESET_IP_BIT(id)    (id & 0x000fffffUL)
@@ -30,8 +34,14 @@ static int reset_numaker_status(const struct device *dev, uint32_t id, uint8_t *
 {
 	const struct reset_numaker_config *config = dev->config;
 
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+	ARG_UNUSED(config);
+
+	*status = NVT_TFM_PLAT_IOCTL_NS(SYS_ResetModule_IsAsserted)(id);
+#else
 	*status = !!sys_test_bit(config->base + NUMAKER_RESET_IP_OFFSET(id),
 				 NUMAKER_RESET_IP_BIT(id));
+#endif
 
 	return 0;
 }
@@ -41,7 +51,13 @@ static int reset_numaker_line_assert(const struct device *dev, uint32_t id)
 	const struct reset_numaker_config *config = dev->config;
 
 	/* Generate reset signal to the corresponding module */
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+	ARG_UNUSED(config);
+
+	NVT_TFM_PLAT_IOCTL_NS(SYS_ResetModule_Assert)(id);
+#else
 	sys_set_bit(config->base + NUMAKER_RESET_IP_OFFSET(id), NUMAKER_RESET_IP_BIT(id));
+#endif
 
 	return 0;
 }
@@ -51,7 +67,13 @@ static int reset_numaker_line_deassert(const struct device *dev, uint32_t id)
 	const struct reset_numaker_config *config = dev->config;
 
 	/* Release corresponding module from reset state */
+#if defined(CONFIG_ARM_NONSECURE_FIRMWARE)
+	ARG_UNUSED(config);
+
+	NVT_TFM_PLAT_IOCTL_NS(SYS_ResetModule_Deassert)(id);
+#else
 	sys_clear_bit(config->base + NUMAKER_RESET_IP_OFFSET(id), NUMAKER_RESET_IP_BIT(id));
+#endif
 
 	return 0;
 }
