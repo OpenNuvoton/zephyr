@@ -69,6 +69,12 @@ void soc_reset_hook(void)
 	CLK_SetCoreClock(DT_PROP(DT_NODELABEL(scc), core_clock));
 #endif
 
+#if defined(CONFIG_ARM_SECURE_FIRMWARE)
+	extern void SCU_IRQHandler(void);
+	IRQ_CONNECT(SCU_IRQn, 0, SCU_IRQHandler, NULL, 0);
+	irq_enable(SCU_IRQn);
+#endif
+
 	/*
 	 * Update System Core Clock
 	 * User can use SystemCoreClockUpdate() to calculate SystemCoreClock.

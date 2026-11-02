@@ -5,4 +5,5 @@ board:
   socs:
   - name: m335xxx
     variants:
+    - name: 's'
     - name: 'ns'
