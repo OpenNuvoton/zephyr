@@ -125,7 +125,12 @@ add_inc_and_src_if_def(
 def_if_def(CONFIG_TFM_PARTITION_CRYPTO                  TEST_NS_CRYPTO)
 def_if_def(CONFIG_TFM_PARTITION_CRYPTO                  TEST_S_CRYPTO)
 def_if_def(CONFIG_TFM_PARTITION_CRYPTO                  TFM_CRYPTO_TEST_UNSUPPORTED_ALG)
-def_if_def(CONFIG_TFM_PARTITION_CRYPTO                  TFM_CRYPTO_TEST_SINGLE_PART_FUNCS)
+# In small profile, the PSA Crypto APIs required by the config are not enabled.
+# The related tests will fail with PSA_ERROR_NOT_SUPPORTED. This follows:
+# tf-m-tests/tests_reg/test/config/profile/profile_small_test.cmake
+if(NOT CONFIG_TFM_PROFILE_TYPE_SMALL)
+  def_if_def(CONFIG_TFM_PARTITION_CRYPTO                TFM_CRYPTO_TEST_SINGLE_PART_FUNCS)
+endif()
 def_if_def(CONFIG_PSA_WANT_ALG_CBC_NO_PADDING           TFM_CRYPTO_TEST_ALG_CBC)
 def_if_def(CONFIG_PSA_WANT_ALG_CCM                      TFM_CRYPTO_TEST_ALG_CCM)
 def_if_def(CONFIG_PSA_WANT_ALG_CFB                      TFM_CRYPTO_TEST_ALG_CFB)
